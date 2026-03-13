@@ -15,12 +15,13 @@ export default function PinGate() {
 
   const pinStr = pin.join('')
 
-  const submitPin = useCallback(async () => {
-    if (pinStr.length !== PIN_LENGTH) return
+  const submitPin = useCallback(async (pinOverride?: string) => {
+    const toSend = pinOverride ?? pinStr
+    if (toSend.length !== PIN_LENGTH) return
     setError('')
     setLoading(true)
     try {
-      const res = await apiPost<{ ok: boolean; lockedUntil?: string }>('/auth', { pin: pinStr })
+      const res = await apiPost<{ ok: boolean; lockedUntil?: string }>('/auth', { pin: toSend })
       if (res.ok) {
         setAuthenticated(true)
         navigate('/dashboard', { replace: true })
@@ -53,11 +54,16 @@ export default function PinGate() {
       if (input) (input as HTMLInputElement).focus()
     }
     if (next.every((d) => d) && next.join('').length === PIN_LENGTH) {
-      submitPin()
+      submitPin(next.join(''))
     }
   }
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && pinStr.length === PIN_LENGTH) {
+      e.preventDefault()
+      submitPin()
+      return
+    }
     if (e.key === 'Backspace' && !pin[index] && index > 0) {
       const input = document.getElementById(`pin-${index - 1}`)
       if (input) (input as HTMLInputElement).focus()
@@ -74,7 +80,7 @@ export default function PinGate() {
     const lastIdx = Math.min(pasted.length, PIN_LENGTH) - 1
     const input = document.getElementById(`pin-${lastIdx}`)
     if (input) (input as HTMLInputElement).focus()
-    if (next.every((d) => d)) submitPin()
+    if (next.every((d) => d)) submitPin(next.join(''))
   }
 
   const isLocked = lockedUntil && new Date(lockedUntil) > new Date()
@@ -104,7 +110,15 @@ export default function PinGate() {
           ))}
         </div>
         {error && <p className="text-center text-sm text-red-600">{error}</p>}
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => submitPin()}
+            disabled={loading || pinStr.length !== PIN_LENGTH}
+            className="px-4 py-2 rounded-md bg-stone-800 text-white text-sm font-medium hover:bg-stone-700 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {loading ? 'Checking…' : 'Submit'}
+          </button>
           <button
             type="button"
             onClick={() => setPin(Array(PIN_LENGTH).fill(''))}
