@@ -1,0 +1,17 @@
+Module 2: The Deep-Dive Analyst (Fundamental & Earnings)
+Source Merged: Morgan Stanley (DCF) + JPMorgan (Earnings) + Goldman Sachs (Screener)
+
+The Prompt:
+"Act as a Lead Equity Research Analyst. Provide a Comprehensive Fundamental Appraisal for [TICKER].
+
+Deliverables:
+
+Earnings Integrity: Summary of the last 4 quarters (beat/miss) and a breakdown of management's guidance vs. Wall Street consensus for the upcoming quarter.
+
+The DCF Engine: A 5-year DCF model including WACC assumptions, terminal value (exit multiple method), and a sensitivity table showing fair value at +/- 1% discount rate changes.
+
+Quality Metrics: P/E vs. 5-year historical average, Debt-to-Equity health check, and Dividend Sustainability (Payout Ratio vs. FCF).
+
+The Verdict: Is the stock Undervalued, Fairly Valued, or Overvalued? Provide a 'Bull Case' and 'Bear Case' price target for 12 months.
+
+Format: Professional Equity Research Report."

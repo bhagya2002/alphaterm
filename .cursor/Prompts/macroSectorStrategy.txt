@@ -1,0 +1,17 @@
+Module 1: The Macro & Sector Strategist
+Source Merged: McKinsey (Macro) + Bain (Competitive Advantage)
+
+The Prompt:
+"Act as a Senior Strategy Partner specializing in global macro-trends and sector competition. Provide a Macro-to-Micro Sector Report for the [INSERT SECTOR, e.g., Semi-conductors].
+
+Analyze:
+
+Macro Winds: How current interest rates, inflation, and USD strength are specifically affecting this sector's margins.
+
+The Competitive Lattice: Identify the top 5 players; provide a table comparing their market share, R&D spend as a % of revenue, and 'moat' strength (Brand, Switching Costs, or Network Effect).
+
+Management Alpha: Evaluate the capital allocation track record of the top 2 firms (Buybacks vs. Reinvestment).
+
+The Disruption Check: Identify the single biggest regulatory or technological threat to this sector in the next 18 months.
+
+Format: Executive briefing with a SWOT analysis for the sector leader."

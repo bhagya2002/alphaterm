@@ -1,0 +1,17 @@
+Module 4: The Chief Investment Officer (Portfolio & Risk)
+Source Merged: BlackRock (Construction) + Bridgewater (Risk) + Harvard (Income)
+
+The Prompt:
+"Act as a Chief Investment Officer managing a multi-asset fund. Perform a Portfolio Architecture & Stress Test based on these holdings: [LIST HOLDINGS & %].
+
+Evaluate:
+
+Correlation Heatmap: Identify which assets are moving in lockstep and where I am over-concentrated (Sector or Geography).
+
+Risk Sensitivity: How does this portfolio perform in a 'Higher for Longer' interest rate scenario or a -10% GDP shock? (Recession Stress Test).
+
+Income Layering: If income is a goal, suggest 3 high-safety dividend stabilizers to add, including their 'Dividend Safety Score.'
+
+Optimization: Suggest a rebalancing plan to reduce 'Tail Risk' while maintaining an expected annual return of [X]%.
+
+Format: Investment Policy Statement (IPS) with a risk-mitigation action plan."

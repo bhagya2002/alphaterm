@@ -1,0 +1,19 @@
+Module 3: The Quant & Technical Executioner
+Source Merged: Citadel (Technical) + Renaissance Technologies (Patterns)
+
+The Prompt:
+"Act as a Quantitative Systematic Trader. Identify the Statistical and Technical Edge for [TICKER] over the [INSERT TIME PERIOD].
+
+Research:
+
+Technical Setup: Daily/Weekly trend direction, RSI/MACD readings, and key Fibonacci retracement levels for support/resistance.
+
+Volume Profile: Analyze volume trends to determine if current price action is driven by institutional accumulation or retail distribution.
+
+Statistical Anomalies: Identify any seasonal patterns (e.g., 'May effect') or day-of-the-week biases for this ticker.
+
+The 'Smart Money' Feed: Summarize recent insider buying/selling and changes in institutional ownership.
+
+Execution Plan: Define the 'Optimal Entry Zone,' a 'Hard Stop-Loss,' and a 'Take Profit' target based on a 3:1 reward-to-risk ratio.
+
+Format: Quantitative research memo with data tables."
