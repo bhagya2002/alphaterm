@@ -26,11 +26,12 @@
    ```
    Edit `.env.local` and set at least: `APP_PIN`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`. Add `FINNHUB_API_KEY` and at least one LLM key when you use those features.
 
-3. Run the app with Vercel Dev (runs both the Vite frontend and the serverless API):
+3. Build the API bundle and run the app with Vercel Dev (runs both the Vite frontend and the serverless API):
    ```bash
+   npm run build:api
    vercel dev
    ```
-   Open the URL shown (e.g. http://localhost:3000). The frontend and `/api/*` routes will work together.
+   Open the URL shown (e.g. http://localhost:3000). The frontend and `/api/*` routes will work together. (The API is a single bundled file `api/index.js` built from `api-src/`.)
 
    Alternatively, run only the frontend (API will not work unless you proxy to a deployed API):
    ```bash
@@ -44,19 +45,26 @@
 
 ## Production (Vercel)
 
-1. Push your code to GitHub (or connect Vercel to your repo).
+The API is bundled into a **single serverless function** (`api/index.js`) at build time from `api-src/`, so you stay under Vercel Hobby’s 12-function limit.
 
-2. In Vercel: **New Project** → Import your repo → set Framework preset to **Vite** → Root directory `./` (or where the app lives).
+### Steps to deploy
 
-3. **Environment variables**: In the project → **Settings** → **Environment Variables**, add every key from `.env.example` for **Production** (and **Preview** if you want). Do not commit `.env.local`.
+1. **Push your code to GitHub** (or connect Vercel to your repo).
 
-4. Deploy:
-   ```bash
-   vercel --prod
-   ```
-   Or rely on Vercel’s automatic deploys on push.
+2. **Create/link the Vercel project**
+   - [vercel.com](https://vercel.com) → **Add New** → **Project** → Import your repo.
+   - Framework preset: **Vite**. Root: `./`. Build command and output are set in `vercel.json`.
 
-5. **Cron**: In `vercel.json`, cron triggers are defined to call `/api/jobs/...` routes. Vercel Hobby includes cron; ensure the routes exist and are protected (e.g. by cron secret header).
+3. **Set environment variables**
+   - Project → **Settings** → **Environment Variables**.
+   - Add every key from `.env.example` for **Production** (and **Preview** if you use it). Do not commit `.env.local`.
+   - At minimum: `APP_PIN`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, one LLM key, one market key, and `CRON_SECRET` if you use cron.
+
+4. **Deploy**
+   - Push to `main` (or your production branch) and Vercel will run `npm run build` (which runs `build:api` then the Vite build) and deploy.
+   - Or from the repo: `vercel --prod`.
+
+5. **Cron**: In `vercel.json`, cron triggers call `/api/jobs/...` routes. Ensure `CRON_SECRET` is set in Vercel and in GitHub Actions secrets if you use the cron workflows.
 
 ## Database (Supabase)
 

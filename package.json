@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:api && tsc -b && vite build",
+    "build:api": "esbuild api-src/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=api/index.js --external:@vercel/node",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -18,12 +19,13 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "@vercel/node": "^3.2.0",
     "@eslint/js": "^9.13.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vercel/node": "^3.2.0",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "esbuild": "^0.27.4",
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",

@@ -29,3 +29,6 @@ dist-ssr
 
 # Vercel
 .vercel
+
+# API bundle (built from api-src at deploy time)
+api/index.js
