@@ -1,0 +1,16 @@
+name: Cron - News Refresh
+# Every 30 min during market hours (9:30 AM - 4:00 PM ET) + 8 PM ET
+on:
+  schedule:
+    - cron: '30 14,15,16,17,18,19,20 * * 1-5'  # :30 past hour
+    - cron: '0 15,16,17,18,19,20,21 * * 1-5'   # :00 (15-21 UTC)
+    - cron: '0 1 * * 2-6'   # 8 PM ET ≈ 1 AM UTC next day
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sf -X POST "${{ secrets.ALPHATERM_URL }}/api/jobs/news-refresh" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

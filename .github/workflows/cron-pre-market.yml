@@ -1,0 +1,13 @@
+name: Cron - Pre-Market Brief
+on:
+  schedule:
+    - cron: '10 14 * * 1-5'  # 9:10 AM ET (14:10 UTC)
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sf -X POST "${{ secrets.ALPHATERM_URL }}/api/jobs/pre-market" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

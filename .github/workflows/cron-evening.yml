@@ -1,0 +1,13 @@
+name: Cron - Evening Digest
+on:
+  schedule:
+    - cron: '0 23 * * 1-5'  # 6:00 PM ET (23:00 UTC)
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sf -X POST "${{ secrets.ALPHATERM_URL }}/api/jobs/evening-digest" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

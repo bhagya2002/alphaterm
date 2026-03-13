@@ -89,20 +89,22 @@ npm install
 3. **Framework preset**: Vite. **Root**: `./` (or where the app lives). **Build command**: `npm run build`. **Output**: `dist`.
 4. **Environment variables**: In the project → **Settings → Environment Variables**, add **every** variable from `.env.example` for **Production** (and **Preview** if you want). Do **not** commit `.env.local`.
 5. **Deploy**: Click Deploy, or run `vercel --prod` from the repo root (after `vercel link`).
-6. Set **CRON_SECRET** in Vercel to the same value you use to secure cron (see step 3). Cron requests will send this so your job handlers can verify them.
+6. Set **CRON_SECRET** in Vercel so job handlers can verify cron requests.
+
+7. **GitHub Actions** (for cron scheduling): Add repo secrets: **ALPHATERM_URL** (your Vercel URL, e.g. `https://alphaterm-xxx.vercel.app`) and **CRON_SECRET** (same as Vercel). Workflows in `.github/workflows/cron-*.yml` will trigger your job endpoints.
 
 ---
 
 ## 7. Cron jobs (schedule and models)
 
-Cron runs on Vercel’s schedule (all times **Eastern**, weekdays unless noted).
+Cron runs via **GitHub Actions** (`.github/workflows/cron-*.yml`) instead of Vercel’s schedule (all times **Eastern**, weekdays unless noted).
 
 | Time (ET)     | Job              | Description |
 |---------------|------------------|-------------|
 | 2:00 AM       | overnight-prep   | Overnight headlines → brief for next day (fast model: Groq 8B). |
 | 9:05 AM       | discovery/run    | FMP screener + ESC scoring (reasoning model). |
 | 9:10 AM       | pre-market       | Pre-market brief (fast: Groq 8B). |
-| 9:30–4:00 PM  | news-refresh     | Every 30 min: news + sentiment (fast). |
+| 9:30–4:00 PM  | news-refresh     | Every 30 min: news + sentiment (fast). Also 8 PM ET. |
 | 3:45 PM       | eod-report       | End-of-day report (reasoning: Cerebras 70B). |
 | 6:00 PM       | evening-digest   | Evening digest (reasoning). |
 | 8:00 PM       | news-refresh     | After-hours news refresh. |
@@ -156,5 +158,6 @@ When generating a report (Stock page or API), you can pass `style: 'full' | 'dee
 - [ ] Vercel project created, env vars added, deploy done
 - [ ] `CRON_SECRET` set in Vercel if using cron
 - [ ] If repo is private: use Vercel Pro or deploy via CLI only
+- [ ] GitHub repo secrets: `ALPHATERM_URL`, `CRON_SECRET` (for cron workflows)
 
 For more on hosting and run commands, see [HOSTING.md](./HOSTING.md).
