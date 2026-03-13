@@ -1,6 +1,7 @@
 /**
  * Catch-all API router — single serverless function for all /api/* routes.
  * Keeps deployment under Vercel Hobby's 12-function limit.
+ * Rewrites in vercel.json send /api/:path* to /api?path=:path*
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { handler as auth } from '../api-handlers/auth'
@@ -92,13 +93,22 @@ function matchRoute(pathStr: string, method: string): Handler | null {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Path from rewrite /api?path=:path* or from req.url
+  let pathStr = ''
   const pathParam = req.query.path ?? req.query['path[]']
-  const segments = Array.isArray(pathParam) ? pathParam : pathParam ? [pathParam] : []
-  const pathStr = segments.map(String).join('/')
+  if (pathParam) {
+    const segs = Array.isArray(pathParam) ? pathParam : [pathParam]
+    pathStr = segs.map(String).join('/')
+  }
+  if (!pathStr && typeof req.url === 'string') {
+    const pathname = req.url.split('?')[0]
+    const match = pathname.match(/^\/api\/?(.*)$/)
+    pathStr = (match?.[1] ?? '').replace(/\/$/, '')
+  }
   if (!pathStr) {
     return res.status(404).json({ error: 'Not found' })
   }
-  // Inject dynamic id for routes like portfolio/xxx, watchlist/xxx, alerts/xxx
+  const segments = pathStr.split('/').filter(Boolean)
   const lastSegment = segments[segments.length - 1]
   if (lastSegment && !['tax-loss', 'generate', 'run', 'ws-token', 'sector-rotation', 'pre-market', 'news-refresh', 'eod-report', 'evening-digest', 'overnight-prep', 'news-purge'].includes(String(lastSegment))) {
     if (segments[0] === 'portfolio' && segments.length === 2) {
