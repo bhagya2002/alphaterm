@@ -31,4 +31,4 @@ dist-ssr
 .vercel
 
 # API bundle (built from api-src at deploy time)
-api/index.js
+api/index.cjs

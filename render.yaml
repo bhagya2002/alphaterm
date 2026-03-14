@@ -1,0 +1,18 @@
+# Render.com — AlphaTerm API (free web service)
+# Deploy: connect this repo, add this Blueprint, or create Web Service manually with the settings below.
+services:
+  - type: web
+    name: alphaterm-api
+    runtime: node
+    buildCommand: npm install && npm run build:api
+    startCommand: node server/index.cjs
+    # Health check path used by Render
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://alphaterm.vercel.app
+      - key: COOKIE_SAMESITE
+        value: None
+      # Add the rest from .env.example (APP_PIN, JWT_SECRET, SUPABASE_*, etc.) in the Render dashboard

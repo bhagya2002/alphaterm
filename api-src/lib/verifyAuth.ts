@@ -55,14 +55,20 @@ export async function verifyAuth(req: VercelRequest, res: VercelResponse): Promi
   return true
 }
 
+function cookieSameSite(): string {
+  return process.env.COOKIE_SAMESITE === 'None' ? 'None' : 'Strict'
+}
+
 export function setAuthCookie(res: VercelResponse, token: string) {
+  const sameSite = cookieSameSite()
   res.setHeader('Set-Cookie', [
-    `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${JWT_TTL}`,
+    `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=${sameSite}; Max-Age=${JWT_TTL}`,
   ])
 }
 
 export function clearAuthCookie(res: VercelResponse) {
+  const sameSite = cookieSameSite()
   res.setHeader('Set-Cookie', [
-    `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`,
+    `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=${sameSite}; Max-Age=0`,
   ])
 }
