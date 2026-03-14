@@ -24,9 +24,11 @@ import { handler as reportsGenerate } from './lib/_handlers/_reports-generate'
 import { handler as discoveryIndex } from './lib/_handlers/_discovery-index'
 import { handler as discoveryRun } from './lib/_handlers/_discovery-run'
 import { handler as marketFx } from './lib/_handlers/_market-fx'
+import { handler as marketQuotes } from './lib/_handlers/_market-quotes'
 import { handler as marketWsToken } from './lib/_handlers/_market-ws-token'
 import { handler as marketMacro } from './lib/_handlers/_market-macro'
 import { handler as marketSectorRotation } from './lib/_handlers/_market-sector-rotation'
+import { handler as marketPriceTargets } from './lib/_handlers/_market-price-targets'
 import { handler as jobsPreMarket } from './lib/_handlers/_jobs-pre-market'
 import { handler as jobsNewsRefresh } from './lib/_handlers/_jobs-news-refresh'
 import { handler as jobsEodReport } from './lib/_handlers/_jobs-eod-report'
@@ -38,6 +40,16 @@ import { handler as earningsTranscript } from './lib/_handlers/_earnings-transcr
 import { handler as searchSemantic } from './lib/_handlers/_search-semantic'
 import { handler as embeddingsIngest } from './lib/_handlers/_embeddings-ingest'
 import { handler as sentimentReddit } from './lib/_handlers/_sentiment-reddit'
+import { handler as accounts } from './lib/_handlers/_accounts'
+import { handler as accountsId } from './lib/_handlers/_accounts-id'
+import { handler as preferences } from './lib/_handlers/_preferences'
+import { handler as transactions } from './lib/_handlers/_transactions'
+import { handler as recommendations } from './lib/_handlers/_recommendations'
+import { handler as research } from './lib/_handlers/_research'
+import { handler as jobsRecommendations } from './lib/_handlers/_jobs-recommendations'
+import { handler as jobsPortfolioResearch } from './lib/_handlers/_jobs-portfolio-research'
+import { handler as jobsWatchlistResearch } from './lib/_handlers/_jobs-watchlist-research'
+import { handler as jobsEmergingResearch } from './lib/_handlers/_jobs-emerging-research'
 
 export const config = { maxDuration: 60 }
 
@@ -64,10 +76,16 @@ const ROUTES: Array<{ path: string | RegExp; method?: string; handler: Handler }
   { path: 'discovery', method: 'GET', handler: discoveryIndex },
   { path: 'discovery/run', handler: discoveryRun },
   { path: 'market/fx', method: 'GET', handler: marketFx },
+  { path: 'market/quotes', method: 'GET', handler: marketQuotes },
   { path: 'market/ws-token', method: 'GET', handler: marketWsToken },
   { path: 'market/macro', method: 'GET', handler: marketMacro },
   { path: 'market/sector-rotation', method: 'GET', handler: marketSectorRotation },
+  { path: 'market/price-targets', method: 'GET', handler: marketPriceTargets },
   { path: 'jobs/pre-market', handler: jobsPreMarket },
+  { path: 'jobs/recommendations', handler: jobsRecommendations },
+  { path: 'jobs/portfolio-research', handler: jobsPortfolioResearch },
+  { path: 'jobs/watchlist-research', handler: jobsWatchlistResearch },
+  { path: 'jobs/emerging-research', handler: jobsEmergingResearch },
   { path: 'jobs/news-refresh', handler: jobsNewsRefresh },
   { path: 'jobs/eod-report', handler: jobsEodReport },
   { path: 'jobs/evening-digest', handler: jobsEveningDigest },
@@ -78,6 +96,12 @@ const ROUTES: Array<{ path: string | RegExp; method?: string; handler: Handler }
   { path: 'search/semantic', method: 'GET', handler: searchSemantic },
   { path: 'embeddings/ingest', method: 'POST', handler: embeddingsIngest },
   { path: 'sentiment/reddit', method: 'GET', handler: sentimentReddit },
+  { path: 'accounts', handler: accounts },
+  { path: /^accounts\/[^/]+$/, handler: accountsId },
+  { path: 'preferences', handler: preferences },
+  { path: 'transactions', handler: transactions },
+  { path: 'recommendations', method: 'GET', handler: recommendations },
+  { path: 'research', method: 'GET', handler: research },
 ]
 
 function matchRoute(pathStr: string, method: string): Handler | null {
@@ -110,12 +134,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const segments = pathStr.split('/').filter(Boolean)
   const lastSegment = segments[segments.length - 1]
-  if (lastSegment && !['tax-loss', 'generate', 'run', 'ws-token', 'sector-rotation', 'pre-market', 'news-refresh', 'eod-report', 'evening-digest', 'overnight-prep', 'news-purge'].includes(String(lastSegment))) {
+  if (lastSegment && !['tax-loss', 'generate', 'run', 'ws-token', 'quotes', 'sector-rotation', 'price-targets', 'pre-market', 'recommendations', 'news-refresh', 'portfolio-research', 'watchlist-research', 'emerging-research', 'eod-report', 'evening-digest', 'overnight-prep', 'news-purge'].includes(String(lastSegment))) {
     if (segments[0] === 'portfolio' && segments.length === 2) {
       (req.query as Record<string, string>).id = String(lastSegment)
     } else if (segments[0] === 'watchlist' && segments.length === 2) {
       (req.query as Record<string, string>).id = String(lastSegment)
     } else if (segments[0] === 'alerts' && segments.length === 2) {
+      (req.query as Record<string, string>).id = String(lastSegment)
+    } else if (segments[0] === 'accounts' && segments.length === 2) {
       (req.query as Record<string, string>).id = String(lastSegment)
     }
   }

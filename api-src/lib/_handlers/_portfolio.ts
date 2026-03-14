@@ -28,6 +28,7 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
       account_type,
       shares,
       avg_cost,
+      target_sell_price,
       date_opened,
       notes,
       in_watchlist,
@@ -37,7 +38,7 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'ticker and shares required' })
     }
 
-    const row = {
+    const row: Record<string, unknown> = {
       ticker: String(ticker).toUpperCase(),
       company_name: String(company_name ?? ticker),
       exchange: String(exchange ?? 'US'),
@@ -49,6 +50,10 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
       notes: String(notes ?? ''),
       in_watchlist: Boolean(in_watchlist),
       is_active: true,
+    }
+    if (target_sell_price != null && target_sell_price !== '') {
+      const v = Number(target_sell_price)
+      if (!isNaN(v) && v > 0) row.target_sell_price = v
     }
 
     const { data, error } = await supabase.from('portfolio_holdings').insert(row).select().single()

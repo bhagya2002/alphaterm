@@ -18,6 +18,7 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {}
   const ticker = body.ticker ? String(body.ticker).toUpperCase() : null
   const style = (body.style as string) || 'full' // full | deep_dive | quant | cio
+  const researchSource = (body.research_source as string) || null // portfolio | watchlist | emerging
   if (!ticker) {
     return res.status(400).json({ error: 'ticker required' })
   }
@@ -75,6 +76,7 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
         ai_score: aiScore ?? undefined,
         provider_used: result.provider,
         model_used: result.model,
+        ...(researchSource && { research_source: researchSource }),
       })
       .select()
       .single()

@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Layout from './components/layout/Layout'
 import Portfolio from './pages/Portfolio'
 import Watchlist from './pages/Watchlist'
+import Research from './pages/Research'
 import Discovery from './pages/Discovery'
 import Stock from './pages/Stock'
 import Chat from './pages/Chat'
@@ -55,6 +56,16 @@ export default function App() {
           <ProtectedRoute>
             <Layout>
               <Portfolio />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/research"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Research />
             </Layout>
           </ProtectedRoute>
         }

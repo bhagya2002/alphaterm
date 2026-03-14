@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet, apiPost } from '../lib/api'
 
@@ -10,6 +10,11 @@ interface ScreenerRow {
   price?: number
   beta?: number
   volume?: number
+}
+
+interface PriceTarget {
+  target: number
+  publishedDate?: string
 }
 
 interface RankItem {
@@ -26,6 +31,7 @@ const SECTORS = [
 export default function Screener() {
   const [results, setResults] = useState<ScreenerRow[]>([])
   const [ranked, setRanked] = useState<RankItem[] | null>(null)
+  const [priceTargets, setPriceTargets] = useState<Record<string, PriceTarget>>({})
   const [loading, setLoading] = useState(false)
   const [rankLoading, setRankLoading] = useState(false)
   const [filters, setFilters] = useState({
@@ -55,6 +61,17 @@ export default function Screener() {
     }
   }
 
+  useEffect(() => {
+    const symbols = (ranked && ranked.length > 0
+      ? ranked.map((r) => r.ticker)
+      : results.map((r) => r.symbol)
+    ).filter(Boolean).slice(0, 20)
+    if (symbols.length === 0) return
+    apiGet<{ targets: Record<string, PriceTarget> }>(`/market/price-targets?symbols=${encodeURIComponent(symbols.join(','))}`)
+      .then((r) => setPriceTargets(r.targets ?? {}))
+      .catch(() => {})
+  }, [results, ranked])
+
   const rankWithAI = async () => {
     if (results.length === 0) return
     setRankLoading(true)
@@ -68,7 +85,7 @@ export default function Screener() {
     }
   }
 
-  const displayList: (ScreenerRow & { rank: number; reasoning: string })[] =
+  const displayList: (ScreenerRow & { rank?: number; reasoning?: string })[] =
     ranked && ranked.length > 0
       ? ranked.map((r) => {
           const row = results.find((x) => (x.symbol || '').toUpperCase() === r.ticker.toUpperCase())
@@ -84,7 +101,7 @@ export default function Screener() {
             reasoning: r.reasoning,
           }
         })
-      : results.map((r, i) => ({ ...r, rank: i + 1, reasoning: '' }))
+      : results.map((r, i) => ({ ...r, rank: i + 1, reasoning: '' as string }))
 
   return (
     <div className="space-y-6">
@@ -172,6 +189,7 @@ export default function Screener() {
                 <th className="text-right p-3 font-medium">Market cap</th>
                 <th className="text-right p-3 font-medium">Price</th>
                 <th className="text-right p-3 font-medium">Volume</th>
+                <th className="text-right p-3 font-medium">Upside %</th>
                 {ranked && ranked.length > 0 && (
                   <th className="text-left p-3 font-medium">Reasoning</th>
                 )}
@@ -180,7 +198,7 @@ export default function Screener() {
             <tbody>
               {displayList.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={ranked?.length ? 8 : 7} className="p-4 text-center text-muted">
+                  <td colSpan={ranked?.length ? 9 : 8} className="p-4 text-center text-muted">
                     No results. Set filters and click &quot;Run screener&quot;.
                   </td>
                 </tr>
@@ -210,6 +228,20 @@ export default function Screener() {
                   </td>
                   <td className="p-3 text-right">
                     {row.volume != null ? (row.volume / 1e6).toFixed(2) + 'M' : '—'}
+                  </td>
+                  <td className="p-3 text-right">
+                    {(() => {
+                      const sym = (row.symbol || '').toUpperCase()
+                      const pt = priceTargets[sym]
+                      const price = row.price
+                      if (!pt || !price || pt.target <= 0) return '—'
+                      const upside = ((pt.target - price) / price) * 100
+                      return (
+                        <span className={upside > 0 ? 'text-emerald-600' : 'text-red-600'}>
+                          {upside > 0 ? '+' : ''}{upside.toFixed(1)}%
+                        </span>
+                      )
+                    })()}
                   </td>
                   {'reasoning' in row && row.reasoning && (
                     <td

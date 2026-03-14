@@ -12,6 +12,7 @@ export interface Holding {
   account_type: AccountType
   shares: number
   avg_cost: number
+  target_sell_price?: number | null
   date_opened: string
   notes: string
   in_watchlist: boolean

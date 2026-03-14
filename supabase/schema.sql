@@ -286,3 +286,63 @@ ALTER TABLE report_embeddings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sector_rotation_cache ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Service role (used by API) bypasses RLS. Anon key has no policies by default (no direct client access to DB).
+
+-- Roadmap: news summaries, preferences, accounts, transactions, recommendations, target sell
+ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE portfolio_holdings ADD COLUMN IF NOT EXISTS target_sell_price NUMERIC;
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  risk_tolerance TEXT DEFAULT 'moderate' CHECK (risk_tolerance IN ('conservative', 'moderate', 'aggressive')),
+  sector_preferences TEXT[],
+  target_allocation_json JSONB,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  account_type TEXT NOT NULL DEFAULT 'Personal' CHECK (account_type IN ('TFSA', 'FHSA', 'RRSP', 'Personal')),
+  cash_balance NUMERIC DEFAULT 0,
+  currency TEXT DEFAULT 'CAD',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE portfolio_holdings ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id);
+
+CREATE TABLE IF NOT EXISTS portfolio_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  holding_id UUID NOT NULL REFERENCES portfolio_holdings(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('buy', 'sell')),
+  shares NUMERIC NOT NULL,
+  price NUMERIC NOT NULL,
+  fee NUMERIC DEFAULT 0,
+  transacted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_holding ON portfolio_transactions(holding_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_transacted ON portfolio_transactions(transacted_at);
+
+CREATE TABLE IF NOT EXISTS ai_recommendations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticker TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('buy', 'sell', 'hold', 'add', 'reduce')),
+  shares_suggested NUMERIC,
+  reasoning TEXT,
+  run_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_run_at ON ai_recommendations(run_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_ticker ON ai_recommendations(ticker);
+
+ALTER TABLE research_reports ADD COLUMN IF NOT EXISTS research_source TEXT;
+
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_recommendations ENABLE ROW LEVEL SECURITY;

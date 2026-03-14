@@ -5,6 +5,19 @@ import { runInference } from '../inferenceRouter'
 import { getPrompt } from '../prompts'
 import { fetchFinnhubCompanyNews, todayET } from '../news'
 
+/** Summarize headline in 1-2 sentences. */
+async function summarizeHeadline(headline: string): Promise<string | null> {
+  try {
+    const result = await runInference({
+      taskType: 'news_summarize',
+      prompt: getPrompt('news_summarize', headline),
+    })
+    return (result.text || '').trim().slice(0, 500) || null
+  } catch {
+    return null
+  }
+}
+
 export const config = { maxDuration: 120 }
 
 /** Classify sentiment (BULLISH/BEARISH/NEUTRAL) via fast LLM. */
@@ -83,8 +96,11 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
           .limit(1)
         if ((existing.data?.length ?? 0) > 0) continue
 
-        const sentiment = await classifySentiment(art.headline)
-        totalTokens += 50
+        const [sentiment, summary] = await Promise.all([
+          classifySentiment(art.headline),
+          summarizeHeadline(art.headline),
+        ])
+        totalTokens += 100
         const { data: row } = await supabase
           .from('news_articles')
           .insert({
@@ -93,6 +109,7 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
             source: art.source,
             url: art.url,
             sentiment_score: sentiment,
+            summary: summary,
             published_at: art.published_at,
           })
           .select('id')

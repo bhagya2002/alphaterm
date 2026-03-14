@@ -1,0 +1,15 @@
+name: Cron - AI Recommendations
+# Pre-market and EOD (6 AM ET, 5 PM ET)
+on:
+  schedule:
+    - cron: '0 11 * * 1-5'   # 6 AM ET = 11 UTC
+    - cron: '0 22 * * 1-5'   # 5 PM ET = 22 UTC
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sf -X POST "${{ secrets.ALPHATERM_URL }}/api/jobs/recommendations" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

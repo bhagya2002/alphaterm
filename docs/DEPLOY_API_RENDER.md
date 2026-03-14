@@ -58,6 +58,24 @@ PORT=3001 node server/index.cjs
 
 Then set `VITE_API_URL=http://localhost:3001` when running the frontend (e.g. `npm run dev`) to hit the local API.
 
+## 5. GitHub Actions cron (optional)
+
+If cron workflows fail with `Error: Process completed with exit code 3` and empty headers in the log, the repo secrets are missing.
+
+1. Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions**.
+2. Add these secrets:
+   - **`ALPHATERM_URL`** = your Render API URL (e.g. `https://alphaterm.onrender.com` or `https://alphaterm-api.onrender.com`), **no trailing slash**.
+   - **`CRON_SECRET`** = same value as `CRON_SECRET` in Render env vars. Generate with: `openssl rand -hex 24`.
+
+## 6. Database migration (roadmap tables)
+
+For accounts, transactions, AI recommendations, and news summaries, run the migration in Supabase SQL Editor:
+
+```sql
+-- Run contents of supabase/migrations/20250314000000_roadmap.sql
+-- Or run the appended section from supabase/schema.sql (bottom)
+```
+
 ## Notes
 
 - **Free tier:** Render may spin down the service after ~15 min of no traffic; the first request after that can be slow (cold start).

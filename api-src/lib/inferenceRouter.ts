@@ -7,6 +7,8 @@ export type TaskType =
   | 'pre_market_brief'
   | 'stock_analysis_full'
   | 'news_sentiment_classify'
+  | 'news_summarize'
+  | 'buy_sell_recommendations'
   | 'eod_summary'
   | 'evening_digest'
   | 'overnight_brief'
@@ -27,32 +29,25 @@ export interface InferenceResult {
 }
 
 /** Fast, high-quota tasks: use Groq Llama 3.1 8B (14,400/day). */
-const FAST_TASKS: TaskType[] = ['pre_market_brief', 'news_sentiment_classify', 'overnight_brief']
+const FAST_TASKS: TaskType[] = ['pre_market_brief', 'news_sentiment_classify', 'news_summarize', 'overnight_brief']
 /** Deep reasoning: use Cerebras Llama 3.3 70B (14,400/day) or OpenRouter DeepSeek-R1. */
-const REASONING_TASKS: TaskType[] = ['stock_analysis_full', 'eod_summary', 'evening_digest']
+const REASONING_TASKS: TaskType[] = ['stock_analysis_full', 'eod_summary', 'evening_digest', 'buy_sell_recommendations']
 
-/** Best model per job (free tier): see PRD §4.1–4.2. */
+/** Provider order: NVIDIA NIMS (40 req/min) for bulk research, then Groq/Cerebras/OpenRouter/etc. */
 function selectProvider(taskType: TaskType): { provider: string; model: string } {
-  // Chat: best UX, limited quota → Gemini 2.0 Flash (20/day) or OpenRouter Gemini free
+  // Chat: best UX → Gemini, OpenRouter, Groq (avoid burning NVIDIA for chat)
   if (taskType === 'chat') {
     if (process.env.GOOGLE_AI_KEY) return { provider: 'google', model: 'gemini-2.0-flash' }
     if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'google/gemini-2.0-flash-exp:free' }
     if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.3-70b-versatile' }
+    if (process.env.NVIDIA_NIMS_API_KEY) return { provider: 'nvidia', model: 'meta/llama3-70b' }
     if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
     if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
   }
 
-  // Fast tasks: Groq Llama 3.1 8B (14,400/day) or Cerebras 8B
-  if (FAST_TASKS.includes(taskType)) {
-    if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.1-8b-instant' }
-    if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
-    if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
-    if (process.env.GOOGLE_AI_KEY) return { provider: 'google', model: 'gemini-2.0-flash' }
-    if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'meta-llama/llama-3.1-8b-instruct:free' }
-  }
-
-  // Reasoning tasks: Groq 70B or OpenRouter DeepSeek-R1 (Cerebras 70B deprecated; use 8B or Groq)
-  if (REASONING_TASKS.includes(taskType)) {
+  // Stock research (per-ticker): prefer NVIDIA NIMS 40 req/min for batch
+  if (taskType === 'stock_analysis_full') {
+    if (process.env.NVIDIA_NIMS_API_KEY) return { provider: 'nvidia', model: 'meta/llama3-70b' }
     if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.3-70b-versatile' }
     if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'deepseek/deepseek-r1:free' }
     if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
@@ -60,12 +55,33 @@ function selectProvider(taskType: TaskType): { provider: string; model: string }
     if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
   }
 
+  // Fast tasks: Groq, Cerebras, NVIDIA 8B
+  if (FAST_TASKS.includes(taskType)) {
+    if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.1-8b-instant' }
+    if (process.env.NVIDIA_NIMS_API_KEY) return { provider: 'nvidia', model: 'meta/llama3-8b' }
+    if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
+    if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
+    if (process.env.GOOGLE_AI_KEY) return { provider: 'google', model: 'gemini-2.0-flash' }
+    if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'meta-llama/llama-3.1-8b-instruct:free' }
+  }
+
+  // Reasoning: Groq 70B, NVIDIA 70B, OpenRouter DeepSeek
+  if (REASONING_TASKS.includes(taskType)) {
+    if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.3-70b-versatile' }
+    if (process.env.NVIDIA_NIMS_API_KEY) return { provider: 'nvidia', model: 'meta/llama3-70b' }
+    if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'deepseek/deepseek-r1:free' }
+    if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
+    if (process.env.GOOGLE_AI_KEY) return { provider: 'google', model: 'gemini-2.0-flash' }
+    if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
+  }
+
+  if (process.env.NVIDIA_NIMS_API_KEY) return { provider: 'nvidia', model: 'meta/llama3-8b' }
   if (process.env.GROQ_API_KEY) return { provider: 'groq', model: 'llama-3.1-8b-instant' }
   if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', model: 'deepseek/deepseek-r1:free' }
   if (process.env.CEREBRAS_API_KEY) return { provider: 'cerebras', model: 'llama3.1-8b' }
   if (process.env.GOOGLE_AI_KEY) return { provider: 'google', model: 'gemini-2.0-flash' }
   if (process.env.MISTRAL_API_KEY) return { provider: 'mistral', model: 'mistral-small-latest' }
-  throw new Error('No LLM provider configured. Set at least one of GROQ_API_KEY, CEREBRAS_API_KEY, GOOGLE_AI_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY')
+  throw new Error('No LLM provider configured. Set at least one of: GROQ_API_KEY, CEREBRAS_API_KEY, GOOGLE_AI_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY, NVIDIA_NIMS_API_KEY')
 }
 
 /** Rough token count (chars/4). */
@@ -144,6 +160,22 @@ async function callOpenRouter(messages: { role: string; content: string }[], mod
   return data.choices?.[0]?.message?.content ?? ''
 }
 
+async function callNvidia(messages: { role: string; content: string }[], model: string): Promise<string> {
+  const key = process.env.NVIDIA_NIMS_API_KEY
+  if (!key) throw new Error('NVIDIA_NIMS_API_KEY not set')
+  const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 2048 }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`NVIDIA NIMS API error: ${res.status} ${err}`)
+  }
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] }
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
 async function callMistral(messages: { role: string; content: string }[], model: string): Promise<string> {
   const key = process.env.MISTRAL_API_KEY
   if (!key) throw new Error('MISTRAL_API_KEY not set')
@@ -184,6 +216,8 @@ export async function runInference(input: InferenceInput): Promise<InferenceResu
     text = await callOpenRouter(messages, model)
   } else if (provider === 'mistral') {
     text = await callMistral(messages, model)
+  } else if (provider === 'nvidia') {
+    text = await callNvidia(messages, model)
   } else {
     throw new Error(`Unknown provider: ${provider}`)
   }

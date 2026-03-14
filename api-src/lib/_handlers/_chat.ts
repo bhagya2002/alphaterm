@@ -42,20 +42,33 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
   const sessionId = body.session_id || getSessionId(req)
 
   const today = todayET()
-  const [{ data: holdings }, { data: scores }, { data: news }] = await Promise.all([
-    supabase.from('portfolio_holdings').select('ticker, shares, avg_cost').eq('is_active', true),
+  const [
+    { data: holdings },
+    { data: scores },
+    { data: news },
+    { data: prefs },
+  ] = await Promise.all([
+    supabase.from('portfolio_holdings').select('ticker, shares, avg_cost, account_type').eq('is_active', true),
     supabase.from('stock_scores').select('ticker, score, recommendation'),
-    supabase.from('news_articles').select('ticker, headline, sentiment_score').gte('published_at', today).limit(20),
+    supabase.from('news_articles').select('ticker, headline, summary, sentiment_score').gte('published_at', today).limit(20),
+    supabase.from('user_preferences').select('risk_tolerance').eq('id', 'default').single(),
   ])
 
   const contextSnapshot = {
     portfolio: holdings ?? [],
     scores: scores ?? [],
-    headlines: (news ?? []).map((n) => ({ ticker: n.ticker, headline: n.headline, sentiment: n.sentiment_score })),
+    headlines: (news ?? []).map((n) => ({
+      ticker: n.ticker,
+      headline: n.headline,
+      summary: n.summary,
+      sentiment: n.sentiment_score,
+    })),
+    risk_tolerance: prefs?.risk_tolerance ?? 'moderate',
     date: today,
   }
   const contextBlock = JSON.stringify(contextSnapshot, null, 2)
-  const systemPrompt = `${PROMPT_TEMPLATES.chat_system_prompt}\n\nContext (portfolio, scores, today's headlines):\n${contextBlock}`
+  const prefsNote = prefs?.risk_tolerance ? ` User risk preference: ${prefs.risk_tolerance}.` : ''
+  const systemPrompt = `${PROMPT_TEMPLATES.chat_system_prompt}${prefsNote}\n\nContext (portfolio, scores, news summaries, risk):\n${contextBlock}`
 
   await supabase.from('chat_messages').insert({
     session_id: sessionId,

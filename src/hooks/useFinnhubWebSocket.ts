@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { apiGet } from '../lib/api'
 import { useMarketStore } from '../store/marketStore'
 import { usePortfolioStore } from '../store/portfolioStore'
 
@@ -36,8 +37,7 @@ export function useFinnhubWebSocket() {
 
     const connect = async () => {
       try {
-        const res = await fetch('/api/market/ws-token', { credentials: 'include' })
-        const data = await res.json()
+        const data = await apiGet<{ token: string }>('/market/ws-token')
         token = data.token
       } catch {
         return

@@ -38,6 +38,12 @@ Format: Investment Policy Statement (IPS) with a risk-mitigation action plan.`,
   evening_digest: `You are a portfolio analyst. Given the end-of-day report and holdings below, write a short evening digest (3-4 sentences) for after-hours review: wrap up the session, highlight any after-hours news or context worth watching overnight, and one item to check at the open. Be concise.`,
   overnight_brief: `Summarize the following overnight/after-hours headlines into a brief (2-4 sentences) for pre-market context. Focus on implications for US/Canadian equities and any major movers or catalysts. Be concise and factual.`,
   chat_system_prompt: `You are AlphaTerm, a personal AI stock analyst. The user has shared their portfolio snapshot, current scores, and today's headlines as context. Answer questions about their holdings, market conditions, scores, and news in a helpful, concise way. Do not make specific buy/sell recommendations unless asked; focus on analysis and context.`,
+  news_summarize: `Summarize the following news headline in 1-2 sentences. Focus on the key fact or impact for the stock/company. No URLs or links. Output only the summary.`,
+  buy_sell_recommendations: `You are a personal stock analyst. Given the portfolio, scores, news summaries, sector data, cash available, risk preference, and optional target_sell_price per holding, output JSON array of recommendations.
+
+For SELL decisions: Consider user's target_sell_price - it's a goal, not fixed. Recommend sell below target if: negative catalysts (upcoming news, earnings risk, sector headwinds). Recommend HOLD/wait if: strong trend, analyst upgrades, good earnings outlook, positive outlook - explain why waiting makes sense.
+Each: { "ticker": "AAPL", "action": "buy"|"sell"|"hold"|"add"|"reduce", "shares_suggested": number or null, "reasoning": "brief reason" }.
+Prioritize actionable items. Respect risk_tolerance. Only suggest buys if cash_available > 0.`,
 }
 
 export type PromptName = keyof typeof PROMPT_TEMPLATES
