@@ -224,7 +224,7 @@ export async function runInference(input: InferenceInput): Promise<InferenceResu
 
   const inputTokens = tokensApprox((input.systemPrompt || '') + input.prompt)
   const outputTokens = tokensApprox(text)
-  const tokensApprox = inputTokens + outputTokens
+  const totalTokens = inputTokens + outputTokens
 
-  return { text, provider, model, tokensApprox }
+  return { text, provider, model, tokensApprox: totalTokens }
 }

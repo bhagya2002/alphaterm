@@ -38,15 +38,21 @@ async function fetchScreenerCandidates(): Promise<ScreenerRow[]> {
   const eodhdToken = process.env.EODHD_API_TOKEN
 
   if (fmpKey) {
-    const params = new URLSearchParams({
-      marketCapMoreThan: '300000000',
-      volumeMoreThan: '100000',
-      limit: String(MAX_CANDIDATES),
-      apikey: fmpKey,
-    })
-    const res = await fetch(`${FMP_STABLE}/company-screener?${params}`)
-    const data = await res.json()
-    if (res.ok && Array.isArray(data)) return data as ScreenerRow[]
+    try {
+      const params = new URLSearchParams({
+        marketCapMoreThan: '300000000',
+        volumeMoreThan: '100000',
+        limit: String(MAX_CANDIDATES),
+        apikey: fmpKey,
+      })
+      const res = await fetch(`${FMP_STABLE}/company-screener?${params}`)
+      const text = await res.text()
+      if (!res.ok) throw new Error('FMP not ok')
+      const data = text.startsWith('[') || text.startsWith('{') ? JSON.parse(text) : null
+      if (Array.isArray(data)) return data as ScreenerRow[]
+    } catch {
+      // FMP may return "Restricted Endpoint" or other non-JSON; fall through to EODHD
+    }
   }
 
   if (eodhdToken) {
