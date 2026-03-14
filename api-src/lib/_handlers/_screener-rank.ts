@@ -37,10 +37,10 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const summary = list.slice(0, 30).map((r) => ({
-    ticker: r.symbol ?? r.ticker ?? '—',
-    name: r.companyName ?? r.company_name ?? '—',
+    ticker: r.symbol ?? r.ticker ?? (r as { code?: string }).code ?? '—',
+    name: r.companyName ?? r.company_name ?? (r as { name?: string }).name ?? '—',
     sector: r.sector ?? '—',
-    marketCap: r.marketCap ?? r.market_cap,
+    marketCap: r.marketCap ?? r.market_cap ?? (r as { market_capitalization?: number }).market_capitalization,
     price: r.price,
     volume: r.volume,
   }))

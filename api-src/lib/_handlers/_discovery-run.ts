@@ -3,12 +3,13 @@ import { verifyAuth } from '../verifyAuth'
 import { verifyCron } from '../cronAuth'
 import { supabase } from '../supabase'
 
-const FMP_BASE = 'https://financialmodelingprep.com/api/v3'
+const FMP_STABLE = 'https://financialmodelingprep.com/stable'
+const EODHD_BASE = 'https://eodhd.com/api'
 const FINNHUB_BASE = 'https://finnhub.io/api/v1'
 const MAX_CANDIDATES = 10
 const CACHE_DAYS = 30
 
-interface FMPScreenerRow {
+interface ScreenerRow {
   symbol: string
   companyName?: string
   marketCap?: number
@@ -32,19 +33,48 @@ function escLabel(score: number): string {
   return 'Low'
 }
 
-async function fetchFMPScreener(apikey: string): Promise<FMPScreenerRow[]> {
-  const params = new URLSearchParams({
-    marketCapMoreThan: '300000000',
-    volumeMoreThan: '100000',
-    isEtf: 'false',
-    isFund: 'false',
-    limit: String(MAX_CANDIDATES),
-    apikey,
-  })
-  const res = await fetch(`${FMP_BASE}/stock-screener?${params}`)
-  if (!res.ok) throw new Error(`FMP screener: ${res.status}`)
-  const data = await res.json()
-  return Array.isArray(data) ? data : []
+async function fetchScreenerCandidates(): Promise<ScreenerRow[]> {
+  const fmpKey = process.env.FMP_API_KEY
+  const eodhdToken = process.env.EODHD_API_TOKEN
+
+  if (fmpKey) {
+    const params = new URLSearchParams({
+      marketCapMoreThan: '300000000',
+      volumeMoreThan: '100000',
+      limit: String(MAX_CANDIDATES),
+      apikey: fmpKey,
+    })
+    const res = await fetch(`${FMP_STABLE}/company-screener?${params}`)
+    const data = await res.json()
+    if (res.ok && Array.isArray(data)) return data as ScreenerRow[]
+  }
+
+  if (eodhdToken) {
+    const filters = JSON.stringify([
+      ['market_capitalization', '>', 300000000],
+      ['avgvol_1d', '>', 100000],
+    ])
+    const params = new URLSearchParams({
+      api_token: eodhdToken,
+      filters,
+      limit: String(MAX_CANDIDATES),
+      sort: 'market_capitalization.desc',
+    })
+    const res = await fetch(`${EODHD_BASE}/screener?${params}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    const arr = Array.isArray(data) ? data : (data?.data ?? data?.results ?? [])
+    return arr.map((r: Record<string, unknown>) => ({
+      symbol: String(r.code ?? r.symbol ?? ''),
+      companyName: r.name as string | undefined,
+      marketCap: typeof r.market_capitalization === 'number' ? r.market_capitalization : Number(r.market_capitalization) || undefined,
+      sector: r.sector as string | undefined,
+      volume: typeof r.avgvol_1d === 'number' ? r.avgvol_1d : Number(r.avgvol_1d) || undefined,
+      price: typeof r.adjusted_close === 'number' ? r.adjusted_close : Number(r.adjusted_close) || undefined,
+    })) as ScreenerRow[]
+  }
+
+  return []
 }
 
 async function fetchFinnhubInsider(symbol: string, token: string): Promise<{ data?: unknown[] }> {
@@ -136,15 +166,16 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const fmpKey = process.env.FMP_API_KEY
+  const eodhdToken = process.env.EODHD_API_TOKEN
   const finnhubKey = process.env.FINNHUB_API_KEY
   const openRouterKey = process.env.OPENROUTER_API_KEY
 
-  if (!fmpKey) {
-    return res.status(503).json({ error: 'FMP_API_KEY not configured' })
+  if (!fmpKey && !eodhdToken) {
+    return res.status(503).json({ error: 'FMP_API_KEY or EODHD_API_TOKEN required for discovery' })
   }
 
   try {
-    const candidates = await fetchFMPScreener(fmpKey)
+    const candidates = await fetchScreenerCandidates()
     if (candidates.length === 0) {
       return res.status(200).json({ ok: true, message: 'No candidates from screener', count: 0 })
     }

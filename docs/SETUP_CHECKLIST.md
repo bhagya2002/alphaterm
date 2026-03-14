@@ -58,6 +58,10 @@ Add `CRON_SECRET` to your API environment variables too (Render/Vercel). Use e.g
 
 **LLM providers** (set keys in API env): `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_AI_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `NVIDIA_NIMS_API_KEY`. Stock research prefers NVIDIA NIMS (40 req/min) for batch; other providers used for chat, fast tasks, fallback.
 
+**Market data fallbacks** (when FMP screener/sector are restricted on your plan):
+- `ALPHA_VANTAGE_KEY` — Sector rotation (free: 5 req/min). Get key: https://www.alphavantage.co/support/#api-key
+- `EODHD_API_TOKEN` — Screener & Discovery (free: 20 calls/day). Get key: https://eodhd.com/register
+
 ---
 
 ## 5. New features to try

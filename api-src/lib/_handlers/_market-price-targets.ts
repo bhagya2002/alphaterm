@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { verifyAuth } from '../verifyAuth'
 
-const FMP_BASE = 'https://financialmodelingprep.com/api/v4'
+const FMP_STABLE = 'https://financialmodelingprep.com/stable'
 
-/** Fetch analyst price targets from FMP. Returns { targets: { SYMBOL: { target, publishedDate } } } */
+/** Fetch analyst price targets from FMP stable API. Returns { targets: { SYMBOL: { target, publishedDate } } } */
 export async function handler(req: VercelRequest, res: VercelResponse) {
   const ok = await verifyAuth(req, res)
   if (!ok) return
@@ -24,15 +24,19 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
   await Promise.all(
     symbols.map(async (symbol) => {
       try {
-        const resp = await fetch(`${FMP_BASE}/price-target?symbol=${encodeURIComponent(symbol)}&apikey=${key}`)
+        const resp = await fetch(`${FMP_STABLE}/price-target-consensus?symbol=${encodeURIComponent(symbol)}&apikey=${key}`)
         if (!resp.ok) return
-        const data = (await resp.json()) as Array<{ symbol?: string; adjPriceTarget?: number; publishedDate?: string }>
-        const item = Array.isArray(data) ? data[0] : null
-        if (item?.adjPriceTarget != null) {
-          targets[symbol] = {
-            target: Number(item.adjPriceTarget),
-            publishedDate: item.publishedDate,
-          }
+        const data = (await resp.json()) as
+          | { consensus?: number; median?: number; targetConsensus?: number; targetMedian?: number }
+          | Array<{ consensus?: number; median?: number; targetConsensus?: number; targetMedian?: number }>
+        const first = Array.isArray(data) ? data[0] : (data as Record<string, unknown>)
+        const target =
+          first?.targetConsensus ??
+          first?.targetMedian ??
+          first?.consensus ??
+          (first as { median?: number }).median
+        if (target != null && Number(target) > 0) {
+          targets[symbol] = { target: Number(target) }
         }
       } catch {
         // skip

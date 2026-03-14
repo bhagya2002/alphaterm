@@ -4,8 +4,10 @@ import { supabase } from '../supabase'
 import { runInference } from '../inferenceRouter'
 
 interface SectorPerf {
-  sector: string
-  changesPercentage: string
+  sector?: string
+  changesPercentage?: string
+  avgChangePercent?: number
+  performance?: number
 }
 
 const TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -52,35 +54,69 @@ export async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const apiKey = process.env.FMP_API_KEY
-  if (!apiKey) {
+  const alphaKey = process.env.ALPHA_VANTAGE_KEY
+  const fmpKey = process.env.FMP_API_KEY
+  if (!alphaKey && !fmpKey) {
     return stubResponse(res)
   }
 
   try {
-    const resp = await fetch(
-      `https://financialmodelingprep.com/api/v3/sector-performance?apikey=${encodeURIComponent(apiKey)}`
-    )
-    if (!resp.ok) {
-      console.error('[sector-rotation] FMP fetch failed:', resp.status)
-      return stubResponse(res)
+    // Prefer Alpha Vantage SECTOR (free); FMP stable requires premium for date param
+    let sectors: { sector: string; performance_1d: number }[] = []
+
+    if (alphaKey) {
+      const avResp = await fetch(
+        `https://www.alphavantage.co/query?function=SECTOR&apikey=${encodeURIComponent(alphaKey)}`
+      )
+      if (avResp.ok) {
+        const av = (await avResp.json()) as Record<string, unknown>
+        // Alpha Vantage returns "Rank B: 1 Day" or "Real Time Performance" with sector->percent
+        const dayData =
+          (av['Rank B: 1 Day'] as Record<string, string>) ??
+          (av['Rank A: Real-Time Performance'] as Record<string, string>) ??
+          (av['Real Time Performance'] as Record<string, string>)
+        if (dayData && typeof dayData === 'object') {
+          sectors = Object.entries(dayData)
+            .map(([sector, pctStr]) => {
+              const pct = parseFloat(String(pctStr || '0').replace('%', '').replace('+', '')) || 0
+              return { sector, performance_1d: pct }
+            })
+            .filter((s) => !!s.sector)
+        }
+      }
     }
 
-    const json = (await resp.json()) as { sectorPerformance?: SectorPerf[] } | SectorPerf[]
-    const list: SectorPerf[] = Array.isArray(json)
-      ? json
-      : (json.sectorPerformance as SectorPerf[]) || []
-
-    const sectors = list
-      .map((s) => {
-        const pctStr = s.changesPercentage?.replace('%', '').replace('+', '') ?? '0'
-        const pct = parseFloat(pctStr)
-        return {
-          sector: s.sector,
-          performance_1d: Number.isFinite(pct) ? pct : 0,
-        }
-      })
-      .filter((s) => !!s.sector)
+    if (sectors.length === 0 && fmpKey) {
+      const date = now.toISOString().slice(0, 10)
+      const resp = await fetch(
+        `https://financialmodelingprep.com/stable/sector-performance-snapshot?date=${date}&apikey=${encodeURIComponent(fmpKey)}`
+      )
+      if (resp.ok) {
+        const json = (await resp.json()) as
+          | { sectorPerformance?: SectorPerf[]; data?: SectorPerf[] }
+          | SectorPerf[]
+        const list: SectorPerf[] = Array.isArray(json)
+          ? json
+          : (json as { sectorPerformance?: SectorPerf[]; data?: SectorPerf[] }).sectorPerformance ||
+            (json as { sectorPerformance?: SectorPerf[]; data?: SectorPerf[] }).data ||
+            []
+        sectors = list
+          .map((s) => {
+            let pct = 0
+            if (s.avgChangePercent != null) pct = Number(s.avgChangePercent)
+            else if (s.performance != null) pct = Number(s.performance)
+            else if (s.changesPercentage) {
+              const pctStr = String(s.changesPercentage).replace('%', '').replace('+', '')
+              pct = parseFloat(pctStr) || 0
+            }
+            return {
+              sector: s.sector ?? 'Unknown',
+              performance_1d: Number.isFinite(pct) ? pct : 0,
+            }
+          })
+          .filter((s) => !!s.sector && s.sector !== 'Unknown')
+      }
+    }
 
     sectors.sort((a, b) => b.performance_1d - a.performance_1d)
 
